@@ -1,4 +1,5 @@
 // backend/server.js
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
@@ -8,7 +9,7 @@ const jwt = require('jsonwebtoken');
 const app = express();
 const prisma = new PrismaClient();
 const PORT = 5000;
-const SECRET_KEY = "my_super_secret_key_for_placement_project"; // In real app, put in .env
+const SECRET_KEY = process.env.JWT_SECRET; 
 
 app.use(cors());
 app.use(express.json());
@@ -28,7 +29,7 @@ const authenticateToken = (req, res, next) => {
 };
 
 // --- ROUTES ---
-
+//1. SignUp Route:
 app.post('/api/auth/signup', async (req, res) => {
   const { email, password, organizationName } = req.body;
   
@@ -56,7 +57,7 @@ app.post('/api/auth/signup', async (req, res) => {
     res.status(400).json({ error: "Email already exists or error creating account" });
   }
 });
-
+//2.Login Route
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   const user = await prisma.user.findUnique({ where: { email } });
@@ -73,7 +74,7 @@ app.post('/api/auth/login', async (req, res) => {
     res.status(401).json({ error: "Invalid credentials" });
   }
 });
-
+//3. Dashboard:
 app.get('/api/dashboard', authenticateToken, async (req, res) => {
   const { organizationId } = req.user;
 
@@ -103,28 +104,39 @@ app.get('/api/dashboard', authenticateToken, async (req, res) => {
     lowStockItems
   });
 });
-
+//4. Create Products:
+// 4. PRODUCTS: Create
 app.post('/api/products', authenticateToken, async (req, res) => {
-  const { name, sku, quantity, price, lowStockThreshold } = req.body;
+  // Added costPrice and description to extraction
+  const { name, sku, quantity, price, costPrice, description, lowStockThreshold } = req.body;
   const { organizationId } = req.user;
 
   try {
+    const org = await prisma.organization.findUnique({ where: { id: organizationId } });
+    
+    // Logic: Use provided threshold OR global default
+    const finalThreshold = lowStockThreshold !== '' 
+        ? parseInt(lowStockThreshold) 
+        : org.defaultLowStockThreshold;
+
     const product = await prisma.product.create({
       data: {
         name,
         sku,
+        description,
         quantity: parseInt(quantity),
         price: parseFloat(price),
-        lowStockThreshold: parseInt(lowStockThreshold || 5), // Default to 5 if empty [cite: 80]
+        costPrice: parseFloat(costPrice), // <--- NEW
+        lowStockThreshold: finalThreshold, 
         organizationId
       }
     });
     res.json(product);
   } catch (error) {
-    res.status(400).json({ error: "Error creating product (SKU might be duplicate)" });
+    res.status(400).json({ error: "Error creating product" });
   }
 });
-
+//5.Get Products:
 app.get('/api/products', authenticateToken, async (req, res) => {
   const { organizationId } = req.user;
   const products = await prisma.product.findMany({
@@ -133,7 +145,7 @@ app.get('/api/products', authenticateToken, async (req, res) => {
   });
   res.json(products);
 });
-
+//6.Delete:
 app.delete('/api/products/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   const { organizationId } = req.user;
@@ -153,7 +165,59 @@ app.delete('/api/products/:id', authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Error deleting product" });
   }
 });
+// 7. PRODUCTS: Update (Edit)
+app.put('/api/products/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { name, sku, quantity, price, costPrice, description, lowStockThreshold } = req.body;
+  const { organizationId } = req.user;
 
+  try {
+    const product = await prisma.product.findFirst({ where: { id, organizationId } });
+    if (!product) return res.status(404).json({ error: "Product not found" });
+
+    const updatedProduct = await prisma.product.update({
+      where: { id },
+      data: {
+        name,
+        sku,
+        description,
+        quantity: parseInt(quantity),
+        price: parseFloat(price),
+        costPrice: parseFloat(costPrice), // <--- NEW
+        lowStockThreshold: lowStockThreshold !== '' ? parseInt(lowStockThreshold) : undefined
+      }
+    });
+
+    res.json(updatedProduct);
+  } catch (error) {
+    res.status(400).json({ error: "Error updating product" });
+  }
+});
+
+// 8. SETTINGS:
+app.get('/api/settings', authenticateToken, async (req, res) => {
+  const { organizationId } = req.user;
+  const org = await prisma.organization.findUnique({
+    where: { id: organizationId }
+  });
+  res.json({ defaultLowStockThreshold: org.defaultLowStockThreshold });
+});
+
+// 9. SETTINGS: 
+app.put('/api/settings', authenticateToken, async (req, res) => {
+  const { organizationId } = req.user;
+  const { defaultLowStockThreshold } = req.body;
+
+  try {
+    const updatedOrg = await prisma.organization.update({
+      where: { id: organizationId },
+      data: { defaultLowStockThreshold: parseInt(defaultLowStockThreshold) }
+    });
+    res.json(updatedOrg);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update settings" });
+  }
+});
 // Start Server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

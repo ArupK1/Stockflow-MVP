@@ -46,6 +46,9 @@ export default function Dashboard() {
             <Link to="/products" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition">
                 Inventory
             </Link>
+            <Link to="/settings" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition">
+                Settings
+            </Link>
             <button onClick={handleLogout} className="flex items-center gap-2 text-sm font-medium text-red-500 hover:text-red-700 transition">
                 <LogOut size={16} /> Sign Out
             </button>

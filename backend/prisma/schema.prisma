@@ -16,6 +16,7 @@ model Organization {
   users     User[]
   products  Product[] // Relation: One Org has many Products
   createdAt DateTime  @default(now())
+  defaultLowStockThreshold Int       @default(5)
 }
 
 // 2. User & Authentication
@@ -29,16 +30,20 @@ model User {
 }
 
 // 3. Product Model
+// 3. Product Model
 model Product {
   id                String       @id @default(uuid())
   organizationId    String
   organization      Organization @relation(fields: [organizationId], references: [id])
   name              String
   sku               String       
-  description       String?
-  quantity          Int          @default(0) // Quantity on Hand
+  description       String?      // Already here, but we will add it to the form
+  quantity          Int          @default(0)
   price             Float?       // Selling Price
-  lowStockThreshold Int          @default(5) // Default global value
+  costPrice         Float?       
+  lowStockThreshold Int          @default(5)
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
+
+  @@unique([organizationId, sku])
 }
