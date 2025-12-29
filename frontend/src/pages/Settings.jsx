@@ -1,9 +1,9 @@
+import config from '../config'; // <--- Import Config
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Settings as SettingsIcon, AlertCircle } from 'lucide-react';
 
 export default function Settings() {
-  // Initialize with empty string to avoid "undefined" error
   const [threshold, setThreshold] = useState(''); 
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -11,7 +11,8 @@ export default function Settings() {
 
   // Fetch current setting on load
   useEffect(() => {
-    fetch('http://localhost:5000/api/settings', {
+    // FIX: Use config.API_URL
+    fetch(`${config.API_URL}/api/settings`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     .then(res => {
@@ -19,7 +20,6 @@ export default function Settings() {
       return res.json();
     })
     .then(data => {
-      // Safety check: if data is null/undefined, default to 5
       setThreshold(data.defaultLowStockThreshold !== undefined ? data.defaultLowStockThreshold : 5);
     })
     .catch(() => navigate('/login'));
@@ -29,7 +29,8 @@ export default function Settings() {
     e.preventDefault();
     setLoading(true);
     
-    const res = await fetch('http://localhost:5000/api/settings', {
+    // FIX: Use config.API_URL
+    const res = await fetch(`${config.API_URL}/api/settings`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',
@@ -92,10 +93,7 @@ export default function Settings() {
                                     type="number" 
                                     required 
                                     min="0"
-                                    // THIS FIXES THE BLACK INPUT:
                                     className="w-32 bg-white text-gray-900 border border-gray-300 rounded-lg p-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none shadow-sm transition"
-                                    
-                                    // THIS FIXES THE "UNCONTROLLED" ERROR:
                                     value={threshold ?? ''} 
                                     onChange={e => setThreshold(e.target.value)} 
                                 />

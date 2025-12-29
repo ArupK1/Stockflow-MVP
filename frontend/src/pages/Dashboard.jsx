@@ -1,3 +1,4 @@
+import config from '../config';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, Package, Layers, AlertTriangle, ArrowRight } from 'lucide-react';
@@ -9,7 +10,7 @@ export default function Dashboard() {
   // Fetch data on load
   useEffect(() => {
     const token = localStorage.getItem('token');
-    fetch('http://localhost:5000/api/dashboard', {
+    fetch(`${config.API_URL}/api/dashboard`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     .then(res => {

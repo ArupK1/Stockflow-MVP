@@ -1,3 +1,4 @@
+import config from '../config'; // <--- Import Config
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Search, Package, AlertCircle, Trash2, Edit2, X, Save } from 'lucide-react';
@@ -19,7 +20,8 @@ export default function Products() {
 
   // --- Fetch Data ---
   const fetchProducts = () => {
-    fetch('http://localhost:5000/api/products', {
+    // FIX: Use config.API_URL
+    fetch(`${config.API_URL}/api/products`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     .then(res => {
@@ -48,9 +50,10 @@ export default function Products() {
   // --- Handle Submit ---
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // FIX: Use config.API_URL
     const url = editingId 
-        ? `http://localhost:5000/api/products/${editingId}` 
-        : 'http://localhost:5000/api/products';
+        ? `${config.API_URL}/api/products/${editingId}` 
+        : `${config.API_URL}/api/products`;
     const method = editingId ? 'PUT' : 'POST';
 
     const res = await fetch(url, {
@@ -88,7 +91,8 @@ export default function Products() {
   // --- Delete ---
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this product?")) return;
-    const res = await fetch(`http://localhost:5000/api/products/${id}`, {
+    // FIX: Use config.API_URL
+    const res = await fetch(`${config.API_URL}/api/products/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
     });

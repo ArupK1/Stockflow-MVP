@@ -1,3 +1,4 @@
+import config from '../config'; // <--- Import Config
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Mail, Lock, ArrowRight, UserPlus, LogIn, AlertCircle } from 'lucide-react';
@@ -28,31 +29,33 @@ export default function Login() {
     const endpoint = isSignup ? '/api/auth/signup' : '/api/auth/login';
     
     try {
-        const res = await fetch(`http://localhost:5000${endpoint}`, {
+        // FIX: Use config.API_URL
+        fetch(`${config.API_URL}${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData),
-        });
+        })
+        .then(async (res) => {
+            const data = await res.json();
+            if (res.ok) {
+                if (isSignup) {
+                    setIsSignup(false);
+                    setFormData({ ...formData, password: '', confirmPassword: '' });
+                    alert("Account created successfully! Please log in.");
+                } else {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('organizationName', data.organizationName);
+                    navigate('/dashboard');
+                }
+            } else {
+                setError(data.error || "Something went wrong.");
+            }
+        })
+        .catch(() => setError("Failed to connect to server."))
+        .finally(() => setLoading(false));
 
-        const data = await res.json();
-        
-        if (res.ok) {
-            if (isSignup) {
-                // Auto-switch to login view after successful signup
-                setIsSignup(false);
-                setFormData({ ...formData, password: '', confirmPassword: '' });
-                alert("Account created successfully! Please log in.");
-              } else {
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('organizationName', data.organizationName); // <--- SAVE NAME
-                navigate('/dashboard');
-              }
-        } else {
-            setError(data.error || "Something went wrong.");
-        }
     } catch (err) {
         setError("Failed to connect to server.");
-    } finally {
         setLoading(false);
     }
   };
