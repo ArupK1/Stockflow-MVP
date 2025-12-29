@@ -6,7 +6,7 @@ export default function Products() {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  
+  const orgName = localStorage.getItem('organizationName') || 'My Organization';
   const [editingId, setEditingId] = useState(null);
   
   const [form, setForm] = useState({ 
@@ -117,7 +117,9 @@ export default function Products() {
                 Inventory Management
              </h1>
         </div>
-        <div className="text-sm text-gray-500">Organization: <span className="font-medium text-gray-900">My Store</span></div>
+        <div className="text-sm text-gray-500">
+            Organization: <span className="font-medium text-gray-900">{orgName}</span>
+        </div>
       </nav>
 
       <main className="flex-1 w-full px-8 py-8">

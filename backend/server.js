@@ -57,19 +57,29 @@ app.post('/api/auth/signup', async (req, res) => {
     res.status(400).json({ error: "Email already exists or error creating account" });
   }
 });
-//2.Login Route
+// 2. AUTH: Login
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
-  const user = await prisma.user.findUnique({ where: { email } });
+  
+  // FIX: Added "include: { organization: true }" to fetch the Org details
+  const user = await prisma.user.findUnique({ 
+    where: { email },
+    include: { organization: true } 
+  });
 
   if (user && (await bcrypt.compare(password, user.password))) {
-    // We store the Organization ID in the token for easy scoping later
     const token = jwt.sign(
       { userId: user.id, organizationId: user.organizationId }, 
       SECRET_KEY, 
       { expiresIn: '1h' }
     );
-    res.json({ token, organizationId: user.organizationId });
+    
+    // FIX: Sending organizationName in the response
+    res.json({ 
+        token, 
+        organizationId: user.organizationId,
+        organizationName: user.organization.name 
+    });
   } else {
     res.status(401).json({ error: "Invalid credentials" });
   }
