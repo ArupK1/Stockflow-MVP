@@ -14,7 +14,6 @@ app.use(cors());
 app.use(express.json());
 
 // --- MIDDLEWARE: Check Logic  ---
-// Verifies the user is logged in and attaches their Org ID to the request
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -23,14 +22,13 @@ const authenticateToken = (req, res, next) => {
 
   jwt.verify(token, SECRET_KEY, (err, user) => {
     if (err) return res.sendStatus(403);
-    req.user = user; // Attach user info (including orgId) to request
+    req.user = user;
     next();
   });
 };
 
 // --- ROUTES ---
 
-// 1. AUTH: Signup [cite: 20]
 app.post('/api/auth/signup', async (req, res) => {
   const { email, password, organizationName } = req.body;
   
@@ -59,7 +57,6 @@ app.post('/api/auth/signup', async (req, res) => {
   }
 });
 
-// 2. AUTH: Login [cite: 25]
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   const user = await prisma.user.findUnique({ where: { email } });
@@ -77,7 +74,6 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// 3. DASHBOARD: Stats [cite: 63]
 app.get('/api/dashboard', authenticateToken, async (req, res) => {
   const { organizationId } = req.user;
 
@@ -108,7 +104,6 @@ app.get('/api/dashboard', authenticateToken, async (req, res) => {
   });
 });
 
-// 4. PRODUCTS: Create [cite: 46]
 app.post('/api/products', authenticateToken, async (req, res) => {
   const { name, sku, quantity, price, lowStockThreshold } = req.body;
   const { organizationId } = req.user;
@@ -130,7 +125,6 @@ app.post('/api/products', authenticateToken, async (req, res) => {
   }
 });
 
-// 5. PRODUCTS: Read List [cite: 48]
 app.get('/api/products', authenticateToken, async (req, res) => {
   const { organizationId } = req.user;
   const products = await prisma.product.findMany({
@@ -138,6 +132,26 @@ app.get('/api/products', authenticateToken, async (req, res) => {
     orderBy: { createdAt: 'desc' }
   });
   res.json(products);
+});
+
+app.delete('/api/products/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { organizationId } = req.user;
+
+  try {
+    // Verify product belongs to this user's organization before deleting
+    const product = await prisma.product.findFirst({
+        where: { id, organizationId }
+    });
+
+    if (!product) return res.status(404).json({ error: "Product not found or access denied" });
+
+    // Actually delete it
+    await prisma.product.delete({ where: { id } });
+    res.json({ message: "Product deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Error deleting product" });
+  }
 });
 
 // Start Server
