@@ -29,6 +29,16 @@ const authenticateToken = (req, res, next) => {
 };
 
 // --- ROUTES ---
+// --- Root Route (Health Check) ---
+app.get('/', (req, res) => {
+  res.send(`
+    <div style="text-align: center; padding-top: 50px; font-family: sans-serif;">
+      <h1>🚀 StockFlow API is Running!</h1>
+      <p>Status: <strong>Online</strong></p>
+      <p>Environment: ${process.env.NODE_ENV || 'Development'}</p>
+    </div>
+  `);
+});
 //1. SignUp Route:
 app.post('/api/auth/signup', async (req, res) => {
   const { email, password, organizationName } = req.body;
